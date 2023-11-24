@@ -101,22 +101,28 @@ $form.Controls.Add($panel2)
 
 # And so on for the other panels...
 
-# Create five items in the listbox
-$listBox.Items.AddRange(('Reset & Unlock', 'Panel 2', 'Panel 3', 'Panel 4', 'Panel 5'))
+# Create a hashtable to map listbox items to panels
+$panelMap = @{
+  'Reset & Unlock' = $ResetUnlock
+  'Panel 2' = $panel2
+  # Add the other panels here...
+}
+
+# Populate the listbox with the keys of the hashtable
+$listBox.Items.AddRange($panelMap.Keys)
 
 # Add a SelectedIndexChanged event handler to the listbox
 $listBox.Add_SelectedIndexChanged({
-    # Hide all panels
-    $ResetUnlock.Visible = $false
-    $panel2.Visible = $false
-    # And so on for the other panels...
+  # Hide all panels
+  foreach ($panel in $panelMap.Values) {
+      $panel.Visible = $false
+  }
 
-    # Show the panel corresponding to the selected item
-    switch ($listBox.SelectedIndex) {
-        0 { $ResetUnlock.Visible = $true }
-        1 { $panel2.Visible = $true }
-        # And so on for the other panels...
-    }
+  # Show the panel corresponding to the selected item
+  $selectedItem = $listBox.SelectedItem.ToString()
+  if ($panelMap.ContainsKey($selectedItem)) {
+      $panelMap[$selectedItem].Visible = $true
+  }
 })
 
 # Show the form
