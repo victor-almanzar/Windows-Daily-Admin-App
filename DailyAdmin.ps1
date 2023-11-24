@@ -1,4 +1,22 @@
+# this makes the script DPI aware
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class DpiAwareness {
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetProcessDPIAware();
+
+    public static void SetDpiAwareness() {
+        SetProcessDPIAware();
+    }
+}
+"@ 
+
+[DpiAwareness]::SetDpiAwareness()
+
 Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.Application]::EnableVisualStyles()
 
 # Create a new form
 $form = New-Object System.Windows.Forms.Form
@@ -6,18 +24,40 @@ $form.Text = "My WinForm Application"
 $form.Size = New-Object System.Drawing.Size(900, 600)
 $form.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E") # Dark gray background
 $form.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF") # White text
+$form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
 
-# Create a MessageBox with the notice text
-$noticeText = "NOTICE: Unauthorized access to this system is forbidden and " +
-              "will be prosecuted.`nBy accessing this system, you agree that " +
-              "your actions may be monitored if unauthorized usage is suspected."
+# Create the banner form
+$bannerForm = New-Object System.Windows.Forms.Form
+$bannerForm.Text = "Notice"
+$bannerForm.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$bannerForm.Size = New-Object System.Drawing.Size(600, 300)
+$bannerForm.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E")
 
-[System.Windows.Forms.MessageBox]::Show(
-    $noticeText, 
-    "Notice", 
-    [System.Windows.Forms.MessageBoxButtons]::OK, 
-    [System.Windows.Forms.MessageBoxIcon]::Information
-)
+# Add the notice text
+$noticeLabel = New-Object System.Windows.Forms.Label
+$noticeLabel.Text = "NOTICE: Unauthorized access to this system is forbidden and " +
+                    "will be prosecuted. By accessing this system, you agree that " +
+                    "your actions may be monitored if unauthorized usage is suspected."
+$noticeLabel.AutoSize = $false
+$noticeLabel.Dock = [System.Windows.Forms.DockStyle]::Fill
+$noticeLabel.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF")
+$noticeLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12)
+$noticeLabel.Padding = New-Object System.Windows.Forms.Padding(16)
+$bannerForm.Controls.Add($noticeLabel)
+
+# Add the OK button
+$okButton = New-Object System.Windows.Forms.Button
+$okButton.Text = "OK"
+$okButton.Dock = [System.Windows.Forms.DockStyle]::Bottom
+$okButton.Height = 30
+$okButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E")
+$okButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF")
+$okButton.Font = New-Object System.Drawing.Font("Segoe UI", 12)
+$okButton.Add_Click({ $bannerForm.Close() })
+$bannerForm.Controls.Add($okButton)
+
+# Show the form
+$bannerForm.ShowDialog()
 
 # Create a sidebar listbox 200px wide and as tall as the form
 $listBox = New-Object System.Windows.Forms.ListBox
@@ -28,22 +68,22 @@ $listBox.SelectionMode = 'One'
 $listBox.BorderStyle = 'None'
 $listBox.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#252526") # Darker gray background for the sidebar
 $listBox.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF") # White text
-$listBox.Font = New-Object System.Drawing.Font("Segoe UI", 12)
+$listBox.Font = New-Object System.Drawing.Font("Segoe UI", 16)
 $form.Controls.Add($listBox)
 
 # Create Panel 1 and add it to the form
-$panel1 = New-Object System.Windows.Forms.Panel
-$panel1.Size = New-Object System.Drawing.Size(700, 600)
-$panel1.Location = New-Object System.Drawing.Point(200, 0)
-$panel1.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E")
-$panel1.Visible = $false
+$ResetUnlock = New-Object System.Windows.Forms.Panel
+$ResetUnlock.Size = New-Object System.Drawing.Size(700, 600)
+$ResetUnlock.Location = New-Object System.Drawing.Point(200, 0)
+$ResetUnlock.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E")
+$ResetUnlock.Visible = $false
 # Add unique controls to Panel 1 here
 $label = New-Object System.Windows.Forms.Label
 $label.Text = "This is Panel 1"
 $label.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF")
 $label.Location = New-Object System.Drawing.Point(10, 10)
-$panel1.Controls.Add($label)
-$form.Controls.Add($panel1)
+$ResetUnlock.Controls.Add($label)
+$form.Controls.Add($ResetUnlock)
 
 # Create Panel 2 and add it to the form
 $panel2 = New-Object System.Windows.Forms.Panel
@@ -62,18 +102,18 @@ $form.Controls.Add($panel2)
 # And so on for the other panels...
 
 # Create five items in the listbox
-$listBox.Items.AddRange(('Panel 1', 'Panel 2', 'Panel 3', 'Panel 4', 'Panel 5'))
+$listBox.Items.AddRange(('Reset & Unlock', 'Panel 2', 'Panel 3', 'Panel 4', 'Panel 5'))
 
 # Add a SelectedIndexChanged event handler to the listbox
 $listBox.Add_SelectedIndexChanged({
     # Hide all panels
-    $panel1.Visible = $false
+    $ResetUnlock.Visible = $false
     $panel2.Visible = $false
     # And so on for the other panels...
 
     # Show the panel corresponding to the selected item
     switch ($listBox.SelectedIndex) {
-        0 { $panel1.Visible = $true }
+        0 { $ResetUnlock.Visible = $true }
         1 { $panel2.Visible = $true }
         # And so on for the other panels...
     }
