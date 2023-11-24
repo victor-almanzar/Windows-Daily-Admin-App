@@ -1,4 +1,4 @@
-# this makes the script DPI aware
+# this improves the apps DPI scaling
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -20,7 +20,7 @@ Add-Type -AssemblyName System.Windows.Forms
 
 # Create a new form
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "My WinForm Application"
+$form.Text = "Daily Admin"
 $form.Size = New-Object System.Drawing.Size(900, 600)
 $form.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E") # Dark gray background
 $form.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF") # White text
@@ -104,7 +104,7 @@ $form.Controls.Add($panel2)
 # Create a hashtable to map listbox items to panels
 $panelMap = @{
   'Reset & Unlock' = $ResetUnlock
-  'Panel 2' = $panel2
+  'Create Account' = $panel2
   # Add the other panels here...
 }
 
