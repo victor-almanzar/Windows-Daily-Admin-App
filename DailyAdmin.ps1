@@ -7,7 +7,17 @@ $form.Size = New-Object System.Drawing.Size(900, 600)
 $form.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E") # Dark gray background
 $form.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF") # White text
 
+# Create a MessageBox with the notice text
+$noticeText = "NOTICE: Unauthorized access to this system is forbidden and " +
+              "will be prosecuted.`nBy accessing this system, you agree that " +
+              "your actions may be monitored if unauthorized usage is suspected."
 
+[System.Windows.Forms.MessageBox]::Show(
+    $noticeText, 
+    "Notice", 
+    [System.Windows.Forms.MessageBoxButtons]::OK, 
+    [System.Windows.Forms.MessageBoxIcon]::Information
+)
 
 # Create a sidebar listbox 200px wide and as tall as the form
 $listBox = New-Object System.Windows.Forms.ListBox
