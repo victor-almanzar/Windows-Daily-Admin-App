@@ -1,4 +1,38 @@
-# this improves the apps DPI scaling
+# Defines a C# class 'DarkTitleBar' to enable immersive dark mode for a window, affecting the title bar color.
+# The 'UseImmersiveDarkMode' method enables/disables dark mode based on the window handle and a boolean input.
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class DarkTitleBar {
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+    public static bool UseImmersiveDarkMode(IntPtr handle, bool enabled) {
+        if (IsWindows10OrGreater(17763)) {
+            var attribute = DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
+            if (IsWindows10OrGreater(18985)) {
+                attribute = DWMWA_USE_IMMERSIVE_DARK_MODE;
+            }
+
+            int useImmersiveDarkMode = enabled ? 1 : 0;
+            return DwmSetWindowAttribute(handle, attribute, ref useImmersiveDarkMode, sizeof(int)) == 0;
+        }
+
+        return false;
+    }
+
+    private static bool IsWindows10OrGreater(int build = -1) {
+        return Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= build;
+    }
+}
+"@
+
+# Defines a C# class 'DpiAwareness' to set the DPI awareness of the current process.
+# The 'SetDpiAwareness' method calls the 'SetProcessDPIAware' function from user32.dll to make the process DPI-aware.
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -13,12 +47,14 @@ public class DpiAwareness {
 }
 "@ 
 
+# Use the 'DpiAwareness' class to make the process DPI-aware
 [DpiAwareness]::SetDpiAwareness()
 
+# Loads the Windows Forms assembly and enables visual styles
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-# Create a new form
+# Creates the main form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Daily Admin"
 $form.Size = New-Object System.Drawing.Size(900, 600)
@@ -26,38 +62,8 @@ $form.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E") # Dark g
 $form.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF") # White text
 $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
 
-# Create the banner form
-$bannerForm = New-Object System.Windows.Forms.Form
-$bannerForm.Text = "Notice"
-$bannerForm.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-$bannerForm.Size = New-Object System.Drawing.Size(600, 300)
-$bannerForm.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E")
-
-# Add the notice text
-$noticeLabel = New-Object System.Windows.Forms.Label
-$noticeLabel.Text = "NOTICE: Unauthorized access to this system is forbidden and " +
-                    "will be prosecuted. By accessing this system, you agree that " +
-                    "your actions may be monitored if unauthorized usage is suspected."
-$noticeLabel.AutoSize = $false
-$noticeLabel.Dock = [System.Windows.Forms.DockStyle]::Fill
-$noticeLabel.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF")
-$noticeLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12)
-$noticeLabel.Padding = New-Object System.Windows.Forms.Padding(16)
-$bannerForm.Controls.Add($noticeLabel)
-
-# Add the OK button
-$okButton = New-Object System.Windows.Forms.Button
-$okButton.Text = "OK"
-$okButton.Dock = [System.Windows.Forms.DockStyle]::Bottom
-$okButton.Height = 30
-$okButton.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E")
-$okButton.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF")
-$okButton.Font = New-Object System.Drawing.Font("Segoe UI", 12)
-$okButton.Add_Click({ $bannerForm.Close() })
-$bannerForm.Controls.Add($okButton)
-
-# Show the form
-$bannerForm.ShowDialog()
+# Use the DarkTitleBar class to enable the immersive dark mode for the main form
+[DarkTitleBar]::UseImmersiveDarkMode($form.Handle, $true)
 
 # Create a sidebar listbox 200px wide and as tall as the form
 $listBox = New-Object System.Windows.Forms.ListBox
@@ -68,7 +74,7 @@ $listBox.SelectionMode = 'One'
 $listBox.BorderStyle = 'None'
 $listBox.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#252526") # Darker gray background for the sidebar
 $listBox.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#FFFFFF") # White text
-$listBox.Font = New-Object System.Drawing.Font("Segoe UI", 16)
+$listBox.Font = New-Object System.Drawing.Font("Segoe UI", 14)
 $form.Controls.Add($listBox)
 
 # Create Panel 1 and add it to the form
@@ -99,8 +105,6 @@ $label2.Location = New-Object System.Drawing.Point(10, 10)
 $panel2.Controls.Add($label2)
 $form.Controls.Add($panel2)
 
-# And so on for the other panels...
-
 # Create a hashtable to map listbox items to panels
 $panelMap = @{
   'Reset & Unlock' = $ResetUnlock
@@ -108,20 +112,21 @@ $panelMap = @{
   # Add the other panels here...
 }
 
-# Populate the listbox with the keys of the hashtable
-$listBox.Items.AddRange($panelMap.Keys)
+# Manually add the items to the ListBox in the order you want
+$listBox.Items.Add('Reset & Unlock')
+$listBox.Items.Add('Create Account')
 
 # Add a SelectedIndexChanged event handler to the listbox
 $listBox.Add_SelectedIndexChanged({
   # Hide all panels
   foreach ($panel in $panelMap.Values) {
-      $panel.Visible = $false
+    $panel.Visible = $false
   }
 
   # Show the panel corresponding to the selected item
   $selectedItem = $listBox.SelectedItem.ToString()
   if ($panelMap.ContainsKey($selectedItem)) {
-      $panelMap[$selectedItem].Visible = $true
+    $panelMap[$selectedItem].Visible = $true
   }
 })
 
